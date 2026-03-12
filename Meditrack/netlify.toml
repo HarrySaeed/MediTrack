@@ -1,0 +1,12 @@
+# FILE: netlify.toml
+# Place this in your project ROOT (same level as src/, package.json)
+
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+# Redirect all routes to index.html for React Router
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
