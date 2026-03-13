@@ -7,7 +7,7 @@ import { useNavigate } from "react-router-dom";
 import AppLayout from "../../components/layout/AppLayout";
 import { PageHeader, Card, Button, Badge, Spinner, EmptyState, StatCard } from "../../components/common/UI";
 import { pharmacyService } from "../../services/pharmacy.service";
-import { useAuth } from "../../context/AuthContext";
+import { useAuth } from "../../context/AuthContext-v2";
 
 const fmt = d => d ? new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "—";
 

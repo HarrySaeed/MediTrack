@@ -4,7 +4,7 @@
    ───────────────────────────────────────────────────────── */
 
 import { NavLink, useNavigate } from "react-router-dom";
-import { useAuth } from "../../context/AuthContext";
+import { useAuth } from "../../context/AuthContext-v2";
 import { Avatar } from "../common/UI";
 
 const NAV = {

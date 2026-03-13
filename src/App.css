@@ -4,6 +4,8 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');
 
+
+
 :root {
   /* Brand */
   --indigo:       #4F46E5;
@@ -11,7 +13,7 @@
   --indigo-dark:  #3730A3;
 
   /* Neutrals */
-  --ink:          #0D1117;
+  --ink:          #000 !important;
   --ink-muted:    #374151;
   --ink-faint:    #6B7280;
   --border:       #E5E7EB;
@@ -50,7 +52,7 @@ html { font-size: 15px; }
 body {
   font-family: var(--font-body);
   background: var(--bg);
-  color: var(--ink);
+  color: #000 !important;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -77,3 +79,16 @@ a { color: inherit; text-decoration: none; }
 
 .animate-fade { animation: fadeIn 0.25s ease both; }
 .animate-slide { animation: slideIn 0.2s ease both; }
+
+
+label {
+  color: #111 !important;
+}
+
+.animate-fade p, .animate-fade h2 {
+  color: #111 !important;
+}
+
+button {
+  color: #fff !important;
+}

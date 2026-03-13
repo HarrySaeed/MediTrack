@@ -223,7 +223,7 @@ export function PageHeader({ title, subtitle, action }) {
   return (
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 28 }}>
       <div>
-        <h1 style={{ fontFamily: "var(--font-display)", fontSize: 24, fontWeight: 800, letterSpacing: "-0.02em", color: "var(--ink)" }}>{title}</h1>
+        <h1 style={{ fontFamily: "var(--font-display)", fontSize: 24, fontWeight: 800, letterSpacing: "-0.02em", color: "#000" }}>{title}</h1>
         {subtitle && <p style={{ fontSize: 14, color: "var(--ink-faint)", marginTop: 4 }}>{subtitle}</p>}
       </div>
       {action}
@@ -239,7 +239,7 @@ export function StatCard({ icon, label, value, color = "var(--indigo)" }) {
         {icon}
       </div>
       <div>
-        <div style={{ fontSize: 26, fontWeight: 800, fontFamily: "var(--font-display)", color: "var(--ink)", lineHeight: 1 }}>{value}</div>
+        <div style={{ fontSize: 26, fontWeight: 800, fontFamily: "var(--font-display)", color: "#000", lineHeight: 1 }}>{value}</div>
         <div style={{ fontSize: 12, color: "var(--ink-faint)", marginTop: 3, fontWeight: 500 }}>{label}</div>
       </div>
     </Card>

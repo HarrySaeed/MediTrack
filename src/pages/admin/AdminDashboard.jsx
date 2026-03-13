@@ -7,7 +7,7 @@ import { useNavigate } from "react-router-dom";
 import AppLayout from "../../components/layout/AppLayout";
 import { PageHeader, StatCard, Card, Button, Spinner } from "../../components/common/UI";
 import { adminService } from "../../services/admin.service";
-import { useAuth } from "../../context/AuthContext";
+import { useAuth } from "../../context/AuthContext-v2";
 
 export default function AdminDashboard() {
   const { user }   = useAuth();

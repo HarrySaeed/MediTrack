@@ -12,8 +12,8 @@
   "dependencies": {
     "@netlify/neon": "^0.1.2",
     "axios": "^1.13.6",
-    "dotenv": "^17.3.1",
-    "drizzle-orm": "^0.45.1",
+    "bcryptjs": "^3.0.3",
+    "jsonwebtoken": "^9.0.3",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-router-dom": "^7.13.1"
@@ -24,7 +24,9 @@
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.1",
     "babel-plugin-react-compiler": "^1.0.0",
+    "dotenv": "^17.3.1",
     "drizzle-kit": "^0.31.9",
+    "drizzle-orm": "^0.45.1",
     "eslint": "^9.39.1",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.4.24",

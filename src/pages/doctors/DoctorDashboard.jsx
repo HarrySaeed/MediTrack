@@ -7,7 +7,7 @@ import { useNavigate } from "react-router-dom";
 import AppLayout from "../../components/layout/AppLayout";
 import { StatCard, Card, PageHeader, Button, Spinner, Badge } from "../../components/common/UI";
 import { patientService } from "../../services/patients.service";
-import { useAuth } from "../../context/AuthContext";
+import { useAuth } from "../../context/AuthContext-v2";
 
 export default function DoctorDashboard() {
   const { user } = useAuth();
