@@ -1,105 +1,163 @@
-/* ─────────────────────────────────────────────────────────
-   FILE: src/pages/pharmacist/PharmacistDashboard.jsx
-   ───────────────────────────────────────────────────────── */
+// src/Pages/pharmacist/PharmacistDashboard.jsx
 
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import AppLayout from "../../components/layout/AppLayout";
-import { PageHeader, Card, Button, Badge, Spinner, EmptyState, StatCard } from "../../components/common/UI";
-import { pharmacyService } from "../../services/pharmacy.service";
-import { useAuth } from "../../context/AuthContext-v2";
+import AppLayout from "../../Components/Layout/AppLayout";
 
-const fmt = d => d ? new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "—";
+const token = () => localStorage.getItem("mt_token");
+const hdr   = () => ({ "Content-Type": "application/json", Authorization: `Bearer ${token()}` });
 
 export default function PharmacistDashboard() {
-  const { user }   = useAuth();
-  const navigate   = useNavigate();
-  const [queue, setQueue]     = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [filling, setFilling] = useState(null);
+  const [pending, setPending]   = useState([]);
+  const [loading, setLoading]   = useState(true);
+  const [acting, setActing]     = useState(null); // prescription id being acted on
 
-  async function load() {
+  useEffect(() => { loadPending(); }, []);
+
+  async function loadPending() {
+    setLoading(true);
     try {
-      const r = await pharmacyService.getPending();
-      setQueue(r.data);
-    } finally { setLoading(false); }
+      const res  = await fetch("/api/pharmacy/pending", { headers: hdr() });
+      const data = await res.json();
+      setPending(Array.isArray(data) ? data : []);
+    } catch (e) { console.error(e); }
+    finally { setLoading(false); }
   }
 
-  useEffect(() => { load(); }, []);
-
-  async function handleFill(id) {
-    setFilling(id);
+  async function handleAction(id, action) {
+    setActing(id);
     try {
-      await pharmacyService.fillPrescription(id);
-      load();
-    } finally { setFilling(null); }
+      await fetch(`/api/pharmacy/prescriptions/${id}/${action}`, { method: "PATCH", headers: hdr() });
+      await loadPending();
+    } catch (e) { console.error(e); }
+    finally { setActing(null); }
   }
 
-  async function handleCancel(id) {
-    if (!confirm("Cancel this prescription?")) return;
-    await pharmacyService.cancelPrescription(id);
-    load();
+  function calcAge(dob) {
+    if (!dob) return "—";
+    return Math.floor((Date.now() - new Date(dob)) / (1000 * 60 * 60 * 24 * 365.25)) + " yrs";
   }
 
   return (
     <AppLayout>
-      <PageHeader
-        title={`Hello, ${user?.name?.split(" ")[0] || "Pharmacist"}`}
-        subtitle="Manage and fill pending prescriptions"
-        action={<Button variant="secondary" onClick={() => navigate("/pharmacist/lookup")}>🔍 Patient Lookup</Button>}
-      />
+      <div className="page">
 
-      {/* Stats */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 28 }}>
-        <StatCard icon="⏳" label="Pending Rx"  value={loading ? "—" : queue.length}                                             color="var(--amber)" />
-        <StatCard icon="✅" label="Filled Today" value="—" color="var(--green)" />
-        <StatCard icon="👥" label="Unique Patients" value={loading ? "—" : new Set(queue.map(r => r.patient_id)).size}           color="var(--indigo)" />
-      </div>
-
-      {/* Pending queue */}
-      <Card>
-        <div style={{ padding: "18px 22px", borderBottom: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <h2 style={{ fontFamily: "var(--font-display)", fontSize: 16, fontWeight: 700 }}>Prescription Queue</h2>
-          <button onClick={load} style={{ background: "none", border: "none", color: "var(--ink-faint)", fontSize: 13, cursor: "pointer" }}>↻ Refresh</button>
+        {/* ── Header ── */}
+        <div className="page-header">
+          <div>
+            <h1 className="page-title">Pharmacy Dashboard</h1>
+            <p className="page-subtitle">Review and fulfil pending prescriptions</p>
+          </div>
         </div>
 
-        {loading ? (
-          <div style={{ display: "flex", justifyContent: "center", padding: 64 }}><Spinner /></div>
-        ) : queue.length === 0 ? (
-          <EmptyState icon="✅" message="No pending prescriptions. Queue is clear!" />
-        ) : (
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
-            <thead>
-              <tr style={{ borderBottom: "1px solid var(--border)", background: "var(--bg)" }}>
-                {["Patient", "MRN", "Drug", "Dose / Frequency", "Prescribed By", "Date", ""].map(h => (
-                  <th key={h} style={{ padding: "10px 20px", textAlign: "left", fontSize: 11, fontWeight: 600, color: "var(--ink-faint)", textTransform: "uppercase", letterSpacing: "0.05em", whiteSpace: "nowrap" }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {queue.map(rx => (
-                <tr key={rx.id} style={{ borderBottom: "1px solid var(--border-light)" }}>
-                  <td style={{ padding: "13px 20px", fontSize: 14, fontWeight: 500 }}>{rx.patient_name}</td>
-                  <td style={{ padding: "13px 20px", fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--ink-faint)" }}>{rx.mrn}</td>
-                  <td style={{ padding: "13px 20px" }}>
-                    <span style={{ fontWeight: 600, fontSize: 14 }}>{rx.drug_name}</span>
-                    {rx.instructions && <div style={{ fontSize: 11, color: "var(--ink-faint)", marginTop: 2 }}>{rx.instructions}</div>}
-                  </td>
-                  <td style={{ padding: "13px 20px", fontSize: 13, color: "var(--ink-muted)" }}>{rx.dosage} · {rx.frequency}</td>
-                  <td style={{ padding: "13px 20px", fontSize: 13, color: "var(--ink-muted)" }}>Dr. {rx.doctor_name}</td>
-                  <td style={{ padding: "13px 20px", fontSize: 12, color: "var(--ink-faint)", fontFamily: "var(--font-mono)" }}>{fmt(rx.prescribed_at)}</td>
-                  <td style={{ padding: "13px 20px" }}>
-                    <div style={{ display: "flex", gap: 6 }}>
-                      <Button size="sm" variant="success" loading={filling === rx.id} onClick={() => handleFill(rx.id)}>Fill ✓</Button>
-                      <Button size="sm" variant="danger"  onClick={() => handleCancel(rx.id)}>Cancel</Button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </Card>
+        {/* ── Stat Cards ── */}
+        <div className="stat-grid">
+          <div className="stat-card">
+            <div className="stat-icon stat-icon-amber">💊</div>
+            <div>
+              <div className="stat-value">{loading ? "—" : pending.length}</div>
+              <div className="stat-label">Pending Prescriptions</div>
+            </div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-icon stat-icon-blue">👥</div>
+            <div>
+              <div className="stat-value">{loading ? "—" : new Set(pending.map(p => p.patient_id)).size}</div>
+              <div className="stat-label">Patients Waiting</div>
+            </div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-icon stat-icon-green">✅</div>
+            <div>
+              <div className="stat-value">—</div>
+              <div className="stat-label">Filled Today</div>
+            </div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-icon stat-icon-red">⚠️</div>
+            <div>
+              <div className="stat-value">{loading ? "—" : pending.filter(p => p.patient_allergies).length}</div>
+              <div className="stat-label">Allergy Alerts</div>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Pending Queue ── */}
+        <div className="card">
+          <div className="card-header">
+            <span className="card-title">Pending Prescriptions</span>
+            <button className="btn btn-ghost btn-sm" onClick={loadPending}>↻ Refresh</button>
+          </div>
+
+          {loading ? (
+            <div className="empty-state">
+              <div className="spinner" style={{ borderColor: "#E5E7EB", borderTopColor: "#4F46E5", width: 28, height: 28 }} />
+            </div>
+          ) : pending.length === 0 ? (
+            <div className="empty-state">
+              <div className="empty-icon">✅</div>
+              <div className="empty-title">All caught up!</div>
+              <div className="empty-desc">No pending prescriptions at the moment</div>
+            </div>
+          ) : (
+            <div className="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Patient</th>
+                    <th>Drug</th>
+                    <th>Dosage</th>
+                    <th>Frequency</th>
+                    <th>Duration</th>
+                    <th>Doctor</th>
+                    <th>Prescribed</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pending.map(rx => (
+                    <tr key={rx.id}>
+                      <td>
+                        <div className="td-primary">{rx.patient_name}</div>
+                        <div className="flex gap-2 mt-1">
+                          <span className="td-mono" style={{ fontSize: 11 }}>{rx.patient_mrn}</span>
+                          {rx.patient_allergies && (
+                            <span className="badge badge-amber" style={{ fontSize: 10 }}>⚠ {rx.patient_allergies}</span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="td-primary">{rx.drug_name}</td>
+                      <td>{rx.dosage}</td>
+                      <td>{rx.frequency}</td>
+                      <td>{rx.duration || "—"}</td>
+                      <td className="td-muted">{rx.doctor_name}</td>
+                      <td className="td-muted">{new Date(rx.prescribed_at).toLocaleDateString()}</td>
+                      <td>
+                        <div className="flex gap-2">
+                          <button
+                            className="btn btn-success btn-sm"
+                            disabled={acting === rx.id}
+                            onClick={() => handleAction(rx.id, "fill")}
+                          >
+                            {acting === rx.id ? <span className="spinner" /> : "✓ Fill"}
+                          </button>
+                          <button
+                            className="btn btn-danger btn-sm"
+                            disabled={acting === rx.id}
+                            onClick={() => handleAction(rx.id, "cancel")}
+                          >
+                            ✕ Cancel
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+      </div>
     </AppLayout>
   );
 }

@@ -1,150 +1,209 @@
-/* ─────────────────────────────────────────────────────────
-   FILE: src/pages/pharmacist/PatientLookup.jsx
-   ───────────────────────────────────────────────────────── */
+// src/Pages/pharmacist/PatientsLook.jsx
 
 import { useState } from "react";
-import AppLayout from "../../components/layout/AppLayout";
-import { PageHeader, Card, Button, Input, Badge, Spinner, EmptyState } from "../../components//common/UI";
-import { pharmacyService } from "../../services/pharmacy.service";
+import AppLayout from "../../Components/Layout/AppLayout";
 
-const fmt = d => d ? new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "—";
+const token = () => localStorage.getItem("mt_token");
+const hdr   = () => ({ "Content-Type": "application/json", Authorization: `Bearer ${token()}` });
 
 export default function PatientLookup() {
   const [query, setQuery]     = useState("");
   const [patient, setPatient] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [acting, setActing]   = useState(null);
   const [error, setError]     = useState("");
-  const [filling, setFilling] = useState(null);
 
   async function handleSearch(e) {
     e.preventDefault();
     if (!query.trim()) return;
-    setLoading(true); setError(""); setPatient(null);
+    setError(""); setPatient(null); setLoading(true);
     try {
-      const r = await pharmacyService.lookup(query.trim());
-      setPatient(r.data);
-    } catch (err) {
-      setError(err.response?.status === 404 ? "No patient found with that ID or MRN." : "Search failed. Please try again.");
-    } finally { setLoading(false); }
+      const res  = await fetch(`/api/pharmacy/patients/${query.trim()}`, { headers: hdr() });
+      const data = await res.json();
+      if (!res.ok) { setError(data.error || "Patient not found"); return; }
+      setPatient(data);
+    } catch {
+      setError("Something went wrong. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   }
 
-  async function handleFill(id) {
-    setFilling(id);
+  async function handleAction(id, action) {
+    setActing(id);
     try {
-      await pharmacyService.fillPrescription(id);
-      const r = await pharmacyService.lookup(patient.id);
-      setPatient(r.data);
-    } finally { setFilling(null); }
+      await fetch(`/api/pharmacy/prescriptions/${id}/${action}`, { method: "PATCH", headers: hdr() });
+      // Reload patient to refresh prescription statuses
+      const res  = await fetch(`/api/pharmacy/patients/${query.trim()}`, { headers: hdr() });
+      const data = await res.json();
+      setPatient(data);
+    } catch (e) { console.error(e); }
+    finally { setActing(null); }
   }
 
-  async function handleCancel(id) {
-    if (!confirm("Cancel this prescription?")) return;
-    await pharmacyService.cancelPrescription(id);
-    const r = await pharmacyService.lookup(patient.id);
-    setPatient(r.data);
+  function calcAge(dob) {
+    if (!dob) return "—";
+    return Math.floor((Date.now() - new Date(dob)) / (1000 * 60 * 60 * 24 * 365.25)) + " yrs";
   }
 
-  const pending = patient?.prescriptions?.filter(r => r.status === "pending") || [];
-  const others  = patient?.prescriptions?.filter(r => r.status !== "pending") || [];
+  const pending = patient?.prescriptions?.filter(rx => rx.status === "pending") || [];
+  const history = patient?.prescriptions?.filter(rx => rx.status !== "pending") || [];
 
   return (
     <AppLayout>
-      <PageHeader title="Patient Lookup" subtitle="Search by Patient ID or MRN to view prescriptions" />
+      <div className="page">
 
-      {/* Search */}
-      <Card style={{ padding: "24px 28px", marginBottom: 24, maxWidth: 600 }}>
-        <form onSubmit={handleSearch} style={{ display: "flex", gap: 12, alignItems: "flex-end" }}>
-          <div style={{ flex: 1 }}>
-            <Input
-              label="Patient ID or MRN"
-              placeholder="e.g. 42 or MRN-00001"
-              value={query}
-              onChange={e => setQuery(e.target.value)}
-              icon={<span>🔍</span>}
-            />
+        {/* ── Header ── */}
+        <div className="page-header">
+          <div>
+            <h1 className="page-title">Patient Lookup</h1>
+            <p className="page-subtitle">Search by patient ID to view prescriptions</p>
           </div>
-          <Button type="submit" loading={loading} style={{ marginBottom: 0 }}>Search</Button>
-        </form>
-        {error && <div style={{ marginTop: 12, padding: "10px 14px", background: "var(--red-bg)", borderRadius: "var(--radius)", fontSize: 13, color: "var(--red)" }}>{error}</div>}
-      </Card>
-
-      {/* Results */}
-      {patient && (
-        <div className="animate-fade">
-          {/* Patient info */}
-          <Card style={{ padding: "20px 24px", marginBottom: 20 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-              <div style={{ width: 48, height: 48, borderRadius: "50%", background: "var(--green-bg)", color: "var(--green)", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 18, flexShrink: 0 }}>
-                {patient.full_name?.split(" ").map(n => n[0]).join("").slice(0, 2)}
-              </div>
-              <div>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-                  <h2 style={{ fontFamily: "var(--font-display)", fontSize: 18, fontWeight: 800 }}>{patient.full_name}</h2>
-                  <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--ink-faint)", background: "var(--bg)", padding: "2px 8px", borderRadius: 6, border: "1px solid var(--border)" }}>{patient.mrn}</span>
-                </div>
-                <div style={{ display: "flex", gap: 16, fontSize: 13, color: "var(--ink-muted)" }}>
-                  <span>DOB: {fmt(patient.date_of_birth)}</span>
-                  {patient.allergies && <span style={{ color: "var(--red)", fontWeight: 600 }}>⚠ Allergies: {patient.allergies}</span>}
-                </div>
-              </div>
-            </div>
-          </Card>
-
-          {/* Pending Rx */}
-          {pending.length > 0 && (
-            <div style={{ marginBottom: 20 }}>
-              <h3 style={{ fontFamily: "var(--font-display)", fontSize: 14, fontWeight: 700, marginBottom: 12, color: "var(--amber)" }}>⏳ Pending Prescriptions ({pending.length})</h3>
-              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                {pending.map(rx => (
-                  <Card key={rx.id} style={{ padding: "16px 20px", borderLeft: "3px solid var(--amber)" }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 6 }}>{rx.drug_name}</div>
-                        <div style={{ display: "flex", gap: 20, fontSize: 13, color: "var(--ink-muted)", flexWrap: "wrap" }}>
-                          <span><strong>Dose:</strong> {rx.dosage}</span>
-                          <span><strong>Frequency:</strong> {rx.frequency}</span>
-                          {rx.duration && <span><strong>Duration:</strong> {rx.duration}</span>}
-                          <span><strong>Doctor:</strong> {rx.doctor_name}</span>
-                        </div>
-                        {rx.instructions && <div style={{ marginTop: 8, fontSize: 12, color: "var(--ink-faint)", background: "var(--bg)", padding: "6px 10px", borderRadius: 6 }}>{rx.instructions}</div>}
-                      </div>
-                      <div style={{ display: "flex", gap: 8, flexShrink: 0, marginLeft: 16 }}>
-                        <Button size="sm" variant="success" loading={filling === rx.id} onClick={() => handleFill(rx.id)}>Fill ✓</Button>
-                        <Button size="sm" variant="danger"  onClick={() => handleCancel(rx.id)}>Cancel</Button>
-                      </div>
-                    </div>
-                  </Card>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* History Rx */}
-          {others.length > 0 && (
-            <div>
-              <h3 style={{ fontFamily: "var(--font-display)", fontSize: 14, fontWeight: 700, marginBottom: 12, color: "var(--ink-faint)" }}>📋 Prescription History</h3>
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {others.map(rx => (
-                  <Card key={rx.id} style={{ padding: "13px 20px" }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <div>
-                        <span style={{ fontSize: 14, fontWeight: 600 }}>{rx.drug_name}</span>
-                        <span style={{ fontSize: 13, color: "var(--ink-faint)", marginLeft: 10 }}>{rx.dosage} · {rx.frequency}</span>
-                      </div>
-                      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                        <span style={{ fontSize: 11, color: "var(--ink-faint)", fontFamily: "var(--font-mono)" }}>{fmt(rx.prescribed_at)}</span>
-                        <Badge status={rx.status} />
-                      </div>
-                    </div>
-                  </Card>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {patient.prescriptions?.length === 0 && <EmptyState icon="💊" message="No prescriptions for this patient." />}
         </div>
-      )}
+
+        {/* ── Search ── */}
+        <div className="card card-pad mb-6">
+          <form onSubmit={handleSearch} className="flex gap-3 items-center">
+            <div className="form-group flex-1" style={{ marginBottom: 0 }}>
+              <input
+                className="form-input"
+                placeholder="Enter Patient ID"
+                value={query}
+                onChange={e => setQuery(e.target.value)}
+              />
+            </div>
+            <button type="submit" className="btn btn-primary" disabled={loading}>
+              {loading ? <span className="spinner" /> : "🔍"}
+              {loading ? "Searching..." : "Search"}
+            </button>
+          </form>
+          {error && <div className="alert alert-danger mt-4">{error}</div>}
+        </div>
+
+        {/* ── Patient Found ── */}
+        {patient && (
+          <>
+            {/* Patient Info Card */}
+            <div className="card card-pad mb-6">
+              <div className="flex items-center gap-4">
+                <div className="avatar avatar-lg">{patient.full_name?.split(" ").map(w => w[0]).join("").slice(0,2).toUpperCase()}</div>
+                <div className="flex-1">
+                  <h2 style={{ fontSize: 20, fontWeight: 800, color: "#111827", marginBottom: 6 }}>{patient.full_name}</h2>
+                  <div className="flex gap-3 items-center flex-wrap">
+                    <span className="td-mono">{patient.mrn}</span>
+                    <span className="badge badge-blue" style={{ textTransform: "capitalize" }}>{patient.gender}</span>
+                    <span className="badge badge-gray">{calcAge(patient.date_of_birth)}</span>
+                    {patient.allergies && <span className="badge badge-amber">⚠ {patient.allergies}</span>}
+                  </div>
+                </div>
+                <div style={{ textAlign: "right" }}>
+                  <div className="text-sm text-faint mb-1">Pending</div>
+                  <div style={{ fontSize: 28, fontWeight: 800, color: pending.length > 0 ? "#D97706" : "#059669" }}>
+                    {pending.length}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Pending Prescriptions */}
+            {pending.length > 0 && (
+              <div className="card mb-6">
+                <div className="card-header">
+                  <span className="card-title">Pending Prescriptions</span>
+                  <span className="badge badge-amber">{pending.length} pending</span>
+                </div>
+                <div className="table-wrap">
+                  <table>
+                    <thead>
+                      <tr><th>Drug</th><th>Dosage</th><th>Frequency</th><th>Duration</th><th>Instructions</th><th>Doctor</th><th>Date</th><th>Actions</th></tr>
+                    </thead>
+                    <tbody>
+                      {pending.map(rx => (
+                        <tr key={rx.id}>
+                          <td className="td-primary">{rx.drug_name}</td>
+                          <td>{rx.dosage}</td>
+                          <td>{rx.frequency}</td>
+                          <td>{rx.duration || "—"}</td>
+                          <td className="td-muted">{rx.instructions || "—"}</td>
+                          <td className="td-muted">{rx.doctor_name}</td>
+                          <td className="td-muted">{new Date(rx.prescribed_at).toLocaleDateString()}</td>
+                          <td>
+                            <div className="flex gap-2">
+                              <button
+                                className="btn btn-success btn-sm"
+                                disabled={acting === rx.id}
+                                onClick={() => handleAction(rx.id, "fill")}
+                              >
+                                {acting === rx.id ? <span className="spinner" /> : "✓ Fill"}
+                              </button>
+                              <button
+                                className="btn btn-danger btn-sm"
+                                disabled={acting === rx.id}
+                                onClick={() => handleAction(rx.id, "cancel")}
+                              >
+                                ✕ Cancel
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* Prescription History */}
+            <div className="card">
+              <div className="card-header">
+                <span className="card-title">Prescription History</span>
+                <span className="badge badge-gray">{history.length} records</span>
+              </div>
+              {history.length === 0 ? (
+                <div className="empty-state">
+                  <div className="empty-icon">📋</div>
+                  <div className="empty-title">No history yet</div>
+                  <div className="empty-desc">Filled or cancelled prescriptions will appear here</div>
+                </div>
+              ) : (
+                <div className="table-wrap">
+                  <table>
+                    <thead>
+                      <tr><th>Drug</th><th>Dosage</th><th>Frequency</th><th>Status</th><th>Doctor</th><th>Date</th></tr>
+                    </thead>
+                    <tbody>
+                      {history.map(rx => (
+                        <tr key={rx.id}>
+                          <td className="td-primary">{rx.drug_name}</td>
+                          <td>{rx.dosage}</td>
+                          <td>{rx.frequency}</td>
+                          <td>
+                            <span className={`badge ${rx.status === "filled" ? "badge-green" : "badge-gray"}`}>
+                              {rx.status}
+                            </span>
+                          </td>
+                          <td className="td-muted">{rx.doctor_name}</td>
+                          <td className="td-muted">{new Date(rx.prescribed_at).toLocaleDateString()}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </>
+        )}
+
+        {/* ── Empty state before search ── */}
+        {!patient && !loading && !error && (
+          <div className="empty-state" style={{ marginTop: 40 }}>
+            <div className="empty-icon">🔍</div>
+            <div className="empty-title">Search for a patient</div>
+            <div className="empty-desc">Enter a patient ID above to view their prescriptions</div>
+          </div>
+        )}
+
+      </div>
     </AppLayout>
   );
 }

@@ -3,19 +3,20 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext-v2";
 
-import LoginPage           from "./pages/auth/LoginPage";
-import ChangePasswordPage  from "./pages/auth/ChangePasswordPage";
+import LoginPage          from "./Pages/Auth/LoginPage";
+import ChangePasswordPage from "./Pages/Auth/ChangePasswordPage";
 
-import DoctorDashboard   from "./Pages/doctors/DoctorDashboard";
-import PatientList       from "./Pages/Doctors/PatientList";
-import PatientDetail     from "./Pages/Doctors/PatientDetail";
-import RegisterPatient   from "./Pages/Doctors/RegisterPatient";
+import DoctorDashboard  from "./pages/doctors/DoctorDashboard";
+import PatientList      from "./pages/doctors/PatientList";
+import PatientDetail    from "./pages/doctors/PatientDetail";
+import RegisterPatient  from "./pages/doctors/RegisterPatient";
 
-import PharmacistDashboard from "./Pages/pharmacist/PharmacistDashboard";
-import PatientLookup       from "./Pages/pharmacist/PatientLookup";
+import PharmacistDashboard from "./pages/pharmacist/PharmacistDashboard";
+import PatientLookup       from "./pages/pharmacist/PatientLookup";
 
-import AdminDashboard  from "./Pages/admin/AdminDashboard";
-import StaffManagement from "./Pages/admin/StaffManagement";
+import AdminDashboard  from "./pages/admin/AdminDashboard";
+import StaffManagement from "./pages/admin/StaffManagement";
+import AddStaff        from "./pages/admin/Add Staff";
 
 function RoleRedirect() {
   const { user } = useAuth();
@@ -49,16 +50,20 @@ function AppRoutes() {
       <Route path="/change-password" element={<ChangePasswordPage />} />
       <Route path="/"                element={<ProtectedRoute><RoleRedirect /></ProtectedRoute>} />
 
+      {/* Doctor */}
       <Route path="/doctor"                element={<ProtectedRoute roles={["doctor"]}><DoctorDashboard /></ProtectedRoute>} />
       <Route path="/doctor/patients"       element={<ProtectedRoute roles={["doctor"]}><PatientList /></ProtectedRoute>} />
       <Route path="/doctor/patients/new"   element={<ProtectedRoute roles={["doctor"]}><RegisterPatient /></ProtectedRoute>} />
       <Route path="/doctor/patients/:id"   element={<ProtectedRoute roles={["doctor"]}><PatientDetail /></ProtectedRoute>} />
 
+      {/* Pharmacist */}
       <Route path="/pharmacist"        element={<ProtectedRoute roles={["pharmacist"]}><PharmacistDashboard /></ProtectedRoute>} />
       <Route path="/pharmacist/lookup" element={<ProtectedRoute roles={["pharmacist"]}><PatientLookup /></ProtectedRoute>} />
 
-      <Route path="/admin"       element={<ProtectedRoute roles={["admin"]}><AdminDashboard /></ProtectedRoute>} />
-      <Route path="/admin/staff" element={<ProtectedRoute roles={["admin"]}><StaffManagement /></ProtectedRoute>} />
+      {/* Admin */}
+      <Route path="/admin"            element={<ProtectedRoute roles={["admin"]}><AdminDashboard /></ProtectedRoute>} />
+      <Route path="/admin/staff"      element={<ProtectedRoute roles={["admin"]}><StaffManagement /></ProtectedRoute>} />
+      <Route path="/admin/staff/new"  element={<ProtectedRoute roles={["admin"]}><AddStaff /></ProtectedRoute>} />
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

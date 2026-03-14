@@ -1,107 +1,149 @@
-/* ─────────────────────────────────────────────────────────
-   FILE: src/pages/doctor/PatientList.jsx
-   ───────────────────────────────────────────────────────── */
+// src/Pages/Doctors/PatientsList.jsx
 
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import AppLayout from "../../components/layout/AppLayout";
-import { PageHeader, Button, Input, Card, Spinner, EmptyState } from "../../components/common/UI";
-import { patientService } from "../../services/patients.service";
 
-function calcAge(dob) {
-  return Math.floor((Date.now() - new Date(dob)) / (365.25 * 24 * 60 * 60 * 1000));
-}
+const token = () => localStorage.getItem("mt_token");
 
 export default function PatientList() {
-  const navigate = useNavigate();
+  const navigate           = useNavigate();
   const [patients, setPatients] = useState([]);
   const [search, setSearch]     = useState("");
   const [loading, setLoading]   = useState(true);
+  const [debounced, setDebounced] = useState("");
 
-  const load = useCallback((q = "") => {
-    setLoading(true);
-    patientService.getAll(q).then(r => setPatients(r.data)).catch(() => {}).finally(() => setLoading(false));
-  }, []);
-
-  useEffect(() => { load(); }, [load]);
+  // Debounce search input
+  useEffect(() => {
+    const t = setTimeout(() => setDebounced(search), 350);
+    return () => clearTimeout(t);
+  }, [search]);
 
   useEffect(() => {
-    const t = setTimeout(() => load(search), 350);
-    return () => clearTimeout(t);
-  }, [search, load]);
+    async function load() {
+      setLoading(true);
+      try {
+        const res  = await fetch(`/api/patients?search=${encodeURIComponent(debounced)}`, {
+          headers: { Authorization: `Bearer ${token()}` },
+        });
+        const data = await res.json();
+        setPatients(Array.isArray(data) ? data : []);
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setLoading(false);
+      }
+    }
+    load();
+  }, [debounced]);
+
+  function calcAge(dob) {
+    if (!dob) return "—";
+    return Math.floor((Date.now() - new Date(dob)) / (1000 * 60 * 60 * 24 * 365.25)) + " yrs";
+  }
+
+  function getInitials(name = "") {
+    return name.split(" ").map(w => w[0]).slice(0, 2).join("").toUpperCase();
+  }
 
   return (
     <AppLayout>
-      <PageHeader
-        title="Patients"
-        subtitle={`${patients.length} record${patients.length !== 1 ? "s" : ""}`}
-        action={<Button onClick={() => navigate("/doctor/patients/new")}>+ Register Patient</Button>}
-      />
+      <div className="page">
 
-      {/* Search */}
-      <div style={{ marginBottom: 20, maxWidth: 380 }}>
-        <Input
-          placeholder="Search by name or MRN…"
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          icon={<span style={{ fontSize: 14 }}>🔍</span>}
-        />
+        {/* ── Header ── */}
+        <div className="page-header">
+          <div>
+            <h1 className="page-title">Patients</h1>
+            <p className="page-subtitle">
+              {loading ? "Loading..." : `${patients.length} patient${patients.length !== 1 ? "s" : ""} found`}
+            </p>
+          </div>
+          <button className="btn btn-primary" onClick={() => navigate("/doctor/patients/new")}>
+            + Register Patient
+          </button>
+        </div>
+
+        {/* ── Search + Table ── */}
+        <div className="card">
+          <div className="card-header">
+            <span className="card-title">All Patients</span>
+            <div className="search-bar">
+              <span className="search-icon">🔍</span>
+              <input
+                placeholder="Search by name or MRN..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+              />
+            </div>
+          </div>
+
+          {loading ? (
+            <div className="empty-state">
+              <div className="spinner" style={{ borderColor: "#E5E7EB", borderTopColor: "#4F46E5", width: 28, height: 28 }} />
+            </div>
+          ) : patients.length === 0 ? (
+            <div className="empty-state">
+              <div className="empty-icon">🔍</div>
+              <div className="empty-title">{search ? "No results found" : "No patients yet"}</div>
+              <div className="empty-desc">
+                {search ? `No patients matching "${search}"` : "Register your first patient to get started"}
+              </div>
+            </div>
+          ) : (
+            <div className="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Patient</th>
+                    <th>MRN</th>
+                    <th>Age</th>
+                    <th>Gender</th>
+                    <th>Blood Type</th>
+                    <th>Phone</th>
+                    <th>Allergies</th>
+                    <th>Registered</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {patients.map(p => (
+                    <tr
+                      key={p.id}
+                      className="cursor-pointer"
+                      onClick={() => navigate(`/doctor/patients/${p.id}`)}
+                    >
+                      <td>
+                        <div className="flex items-center gap-3">
+                          <div className="avatar">{getInitials(p.full_name)}</div>
+                          <div>
+                            <div className="td-primary">{p.full_name}</div>
+                            {p.address && <div className="td-muted" style={{ fontSize: 12 }}>{p.address}</div>}
+                          </div>
+                        </div>
+                      </td>
+                      <td><span className="td-mono">{p.mrn}</span></td>
+                      <td>{calcAge(p.date_of_birth)}</td>
+                      <td style={{ textTransform: "capitalize" }}>{p.gender}</td>
+                      <td>
+                        {p.blood_type
+                          ? <span className="badge badge-red">{p.blood_type}</span>
+                          : <span className="td-muted">—</span>}
+                      </td>
+                      <td className="td-muted">{p.phone || "—"}</td>
+                      <td>
+                        {p.allergies
+                          ? <span className="badge badge-amber">⚠ {p.allergies}</span>
+                          : <span className="badge badge-gray">None</span>}
+                      </td>
+                      <td className="td-muted">{new Date(p.created_at).toLocaleDateString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
       </div>
-
-      <Card>
-        {loading ? (
-          <div style={{ display: "flex", justifyContent: "center", padding: 64 }}><Spinner /></div>
-        ) : patients.length === 0 ? (
-          <EmptyState icon="👥" message={search ? "No patients match your search." : "No patients registered yet."} />
-        ) : (
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
-            <thead>
-              <tr style={{ borderBottom: "1px solid var(--border)", background: "var(--bg)" }}>
-                {["Patient", "MRN", "Age / Gender", "Blood Type", "Phone", "Allergies", ""].map(h => (
-                  <th key={h} style={{ padding: "11px 20px", textAlign: "left", fontSize: 11, fontWeight: 600, color: "var(--ink-faint)", textTransform: "uppercase", letterSpacing: "0.05em", whiteSpace: "nowrap" }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {patients.map((p, i) => (
-                <tr
-                  key={p.id}
-                  onClick={() => navigate(`/doctor/patients/${p.id}`)}
-                  style={{
-                    borderBottom: "1px solid var(--border-light)",
-                    cursor: "pointer", transition: "background 0.1s",
-                    background: i % 2 === 0 ? "#fff" : "var(--bg)",
-                  }}
-                  onMouseEnter={e => e.currentTarget.style.background = "var(--indigo-light)"}
-                  onMouseLeave={e => e.currentTarget.style.background = i % 2 === 0 ? "#fff" : "var(--bg)"}
-                >
-                  <td style={{ padding: "13px 20px" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                      <div style={{ width: 34, height: 34, borderRadius: "50%", background: "var(--indigo-light)", color: "var(--indigo)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 12, flexShrink: 0 }}>
-                        {p.full_name?.split(" ").map(n => n[0]).join("").slice(0, 2)}
-                      </div>
-                      <span style={{ fontSize: 14, fontWeight: 500 }}>{p.full_name}</span>
-                    </div>
-                  </td>
-                  <td style={{ padding: "13px 20px", fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--ink-faint)" }}>{p.mrn}</td>
-                  <td style={{ padding: "13px 20px", fontSize: 13, color: "var(--ink-muted)" }}>{calcAge(p.date_of_birth)} yrs · {p.gender}</td>
-                  <td style={{ padding: "13px 20px", fontSize: 13 }}>{p.blood_type || "—"}</td>
-                  <td style={{ padding: "13px 20px", fontSize: 13, color: "var(--ink-muted)" }}>{p.phone || "—"}</td>
-                  <td style={{ padding: "13px 20px" }}>
-                    {p.allergies
-                      ? <span style={{ fontSize: 11, background: "var(--red-bg)", color: "var(--red)", padding: "2px 8px", borderRadius: 20, fontWeight: 600 }}>⚠ {p.allergies}</span>
-                      : <span style={{ fontSize: 12, color: "var(--ink-faint)" }}>None</span>
-                    }
-                  </td>
-                  <td style={{ padding: "13px 20px" }}>
-                    <Button size="sm" variant="secondary" onClick={e => { e.stopPropagation(); navigate(`/doctor/patients/${p.id}`); }}>Open →</Button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </Card>
     </AppLayout>
   );
 }

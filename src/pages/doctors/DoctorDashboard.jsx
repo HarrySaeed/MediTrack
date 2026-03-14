@@ -1,85 +1,170 @@
-/* ─────────────────────────────────────────────────────────
-   FILE: src/pages/doctor/DoctorDashboard.jsx
-   ───────────────────────────────────────────────────────── */
+// src/Pages/Doctors/DoctorDashbord.jsx
 
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import AppLayout from "../../components/layout/AppLayout";
-import { StatCard, Card, PageHeader, Button, Spinner, Badge } from "../../components/common/UI";
-import { patientService } from "../../services/patients.service";
-import { useAuth } from "../../context/AuthContext-v2";
+
+const token = () => localStorage.getItem("mt_token");
 
 export default function DoctorDashboard() {
-  const { user } = useAuth();
   const navigate = useNavigate();
+  const [stats, setStats]     = useState(null);
   const [patients, setPatients] = useState([]);
-  const [loading, setLoading]   = useState(true);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    patientService.getAll().then(r => setPatients(r.data)).catch(() => {}).finally(() => setLoading(false));
+    async function load() {
+      try {
+        const [pRes, dRes, rxRes] = await Promise.all([
+          fetch("/api/patients", { headers: { Authorization: `Bearer ${token()}` } }),
+          fetch("/api/patients", { headers: { Authorization: `Bearer ${token()}` } }),
+          fetch("/api/patients", { headers: { Authorization: `Bearer ${token()}` } }),
+        ]);
+        const allPatients = await pRes.json();
+        setPatients(allPatients.slice(0, 8));
+        setStats({
+          totalPatients: allPatients.length,
+          today: new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" }),
+        });
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setLoading(false);
+      }
+    }
+    load();
   }, []);
 
-  const recentPatients = patients.slice(0, 5);
-  const today = new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
+  function getInitials(name = "") {
+    return name.split(" ").map(w => w[0]).slice(0, 2).join("").toUpperCase();
+  }
+
+  function calcAge(dob) {
+    if (!dob) return "—";
+    const diff = Date.now() - new Date(dob).getTime();
+    return Math.floor(diff / (1000 * 60 * 60 * 24 * 365.25)) + " yrs";
+  }
 
   return (
     <AppLayout>
-      <PageHeader
-        title={`Good morning, Dr. ${user?.name?.split(" ").pop() || "Doctor"}`}
-        subtitle={today}
-        action={<Button onClick={() => navigate("/doctor/patients/new")}>+ Register Patient</Button>}
-      />
+      <div className="page">
 
-      {/* Stats */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 28 }}>
-        <StatCard icon="👥" label="Total Patients"     value={loading ? "—" : patients.length}                              color="var(--indigo)" />
-        <StatCard icon="📋" label="Active Diagnoses"   value={loading ? "—" : patients.reduce((a, p) => a + (p.diagnoses?.filter(d => d.status === "active").length || 0), 0)} color="#D97706" />
-        <StatCard icon="💊" label="Pending Rx"         value={loading ? "—" : patients.reduce((a, p) => a + (p.prescriptions?.filter(x => x.status === "pending").length || 0), 0)} color="var(--green)" />
-      </div>
-
-      {/* Recent patients */}
-      <Card>
-        <div style={{ padding: "18px 22px", borderBottom: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <h2 style={{ fontFamily: "var(--font-display)", fontSize: 16, fontWeight: 700 }}>Recent Patients</h2>
-          <Button variant="ghost" size="sm" onClick={() => navigate("/doctor/patients")}>View all</Button>
+        {/* ── Header ── */}
+        <div className="page-header">
+          <div>
+            <h1 className="page-title">Dashboard</h1>
+            {/* <p className="page-subtitle">{stats?.today || "Loading..."}</p> */}
+          </div>
+          <button
+            className="btn btn-primary"
+            onClick={() => navigate("/doctor/patients/new")}
+          >
+            + Register Patient
+          </button>
         </div>
 
-        {loading ? (
-          <div style={{ display: "flex", justifyContent: "center", padding: 48 }}><Spinner /></div>
-        ) : recentPatients.length === 0 ? (
-          <div style={{ padding: 48, textAlign: "center", color: "var(--ink-faint)", fontSize: 14 }}>No patients registered yet.</div>
-        ) : (
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
-            <thead>
-              <tr style={{ borderBottom: "1px solid var(--border)" }}>
-                {["Patient", "MRN", "DOB", "Blood Type", ""].map(h => (
-                  <th key={h} style={{ padding: "10px 22px", textAlign: "left", fontSize: 11, fontWeight: 600, color: "var(--ink-faint)", textTransform: "uppercase", letterSpacing: "0.05em" }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {recentPatients.map(p => (
-                <tr key={p.id} style={{ borderBottom: "1px solid var(--border-light)" }}>
-                  <td style={{ padding: "13px 22px" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                      <div style={{ width: 32, height: 32, borderRadius: "50%", background: "var(--indigo-light)", color: "var(--indigo)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 12, flexShrink: 0 }}>
-                        {p.full_name?.split(" ").map(n => n[0]).join("").slice(0, 2)}
-                      </div>
-                      <span style={{ fontSize: 14, fontWeight: 500 }}>{p.full_name}</span>
-                    </div>
-                  </td>
-                  <td style={{ padding: "13px 22px", fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--ink-faint)" }}>{p.mrn}</td>
-                  <td style={{ padding: "13px 22px", fontSize: 13, color: "var(--ink-muted)" }}>{new Date(p.date_of_birth).toLocaleDateString()}</td>
-                  <td style={{ padding: "13px 22px", fontSize: 13 }}>{p.blood_type || "—"}</td>
-                  <td style={{ padding: "13px 22px" }}>
-                    <Button size="sm" variant="secondary" onClick={() => navigate(`/doctor/patients/${p.id}`)}>View →</Button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </Card>
+        {/* ── Stat Cards ── */}
+        <div className="stat-grid">
+          <div className="stat-card">
+            <div className="stat-icon stat-icon-blue">👥</div>
+            <div>
+              <div className="stat-value">{loading ? "—" : stats?.totalPatients ?? 0}</div>
+              <div className="stat-label">Total Patients</div>
+            </div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-icon stat-icon-green">📋</div>
+            <div>
+              <div className="stat-value">—</div>
+              <div className="stat-label">Active Diagnoses</div>
+            </div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-icon stat-icon-amber">💊</div>
+            <div>
+              <div className="stat-value">—</div>
+              <div className="stat-label">Pending Rx</div>
+            </div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-icon stat-icon-red">🗓️</div>
+            <div>
+              <div className="stat-value">—</div>
+              <div className="stat-label">Today's Visits</div>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Recent Patients ── */}
+        <div className="card">
+          <div className="card-header">
+            <span className="card-title">Recent Patients</span>
+            <button
+              className="btn btn-secondary btn-sm"
+              onClick={() => navigate("/doctor/patients")}
+            >
+              View all →
+            </button>
+          </div>
+
+          {loading ? (
+            <div className="empty-state">
+              <div className="spinner" style={{ borderColor: "#E5E7EB", borderTopColor: "#4F46E5", width: 28, height: 28 }} />
+            </div>
+          ) : patients.length === 0 ? (
+            <div className="empty-state">
+              <div className="empty-icon">👥</div>
+              <div className="empty-title">No patients yet</div>
+              <div className="empty-desc">Register your first patient to get started</div>
+            </div>
+          ) : (
+            <div className="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Patient</th>
+                    <th>MRN</th>
+                    <th>Age</th>
+                    <th>Gender</th>
+                    <th>Blood Type</th>
+                    <th>Allergies</th>
+                    <th>Registered</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {patients.map(p => (
+                    <tr key={p.id} onClick={() => navigate(`/doctor/patients/${p.id}`)}>
+                      <td>
+                        <div className="flex items-center gap-3">
+                          <div className="avatar">{getInitials(p.full_name)}</div>
+                          <span className="td-primary">{p.full_name}</span>
+                        </div>
+                      </td>
+                      <td><span className="td-mono">{p.mrn}</span></td>
+                      <td>{calcAge(p.date_of_birth)}</td>
+                      <td style={{ textTransform: "capitalize" }}>{p.gender}</td>
+                      <td>
+                        {p.blood_type
+                          ? <span className="badge badge-red">{p.blood_type}</span>
+                          : <span className="td-muted">—</span>}
+                      </td>
+                      <td>
+                        {p.allergies
+                          ? <span className="badge badge-amber">⚠ {p.allergies}</span>
+                          : <span className="badge badge-gray">None</span>}
+                      </td>
+                      <td className="td-muted">
+                        {new Date(p.created_at).toLocaleDateString()}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+      </div>
     </AppLayout>
   );
 }
