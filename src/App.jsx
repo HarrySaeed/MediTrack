@@ -3,7 +3,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext-v2";
 
-import LoginPage          from "./pages/auth/Login";
+import LoginPage          from "./pages/auth/LoginPage";
 import ChangePasswordPage from "./pages/auth/ChangePasswordPage";
 
 import DoctorDashboard  from "./pages/doctors/DoctorDashbord";
