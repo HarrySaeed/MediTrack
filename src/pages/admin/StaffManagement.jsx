@@ -1,7 +1,7 @@
 // src/Pages/admin/StaffManangement.jsx
 
 import { useState, useEffect } from "react";
-import AppLayout from "../../Components/Layout/AppLayout";
+import AppLayout from "../../Components/layout/AppLayout";
 
 const token = () => localStorage.getItem("mt_token");
 const hdr   = () => ({ "Content-Type": "application/json", Authorization: `Bearer ${token()}` });

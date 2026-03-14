@@ -1,6 +1,6 @@
 /* ─────────────────────────────────────────────────────────
-   FILE: src/components/common/UI.jsx
-   Shared primitive components used everywhere.
+   FILE: src/Components/common/UI.jsx
+   Shared primitive Components used everywhere.
    ───────────────────────────────────────────────────────── */
 
 import { useState } from "react";

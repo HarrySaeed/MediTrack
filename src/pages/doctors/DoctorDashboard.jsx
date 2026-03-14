@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import AppLayout from "../../components/layout/AppLayout";
+import AppLayout from "../../Components/layout/AppLayout";
 
 const token = () => localStorage.getItem("mt_token");
 
