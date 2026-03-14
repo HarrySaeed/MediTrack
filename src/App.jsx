@@ -6,16 +6,16 @@ import { AuthProvider, useAuth } from "./context/AuthContext-v2";
 import LoginPage          from "./pages/auth/LoginPage";
 import ChangePasswordPage from "./pages/auth/ChangePasswordPage";
 
-import DoctorDashboard  from "./pages/doctors/DoctorDashbord";
-import PatientList      from "./pages/doctors/PatientsList";
+import DoctorDashboard  from "./pages/doctors/DoctorDashboard";
+import PatientList      from "./pages/doctors/PatientList";
 import PatientDetail    from "./pages/doctors/PatientDetail";
 import RegisterPatient  from "./pages/doctors/RegisterPatient";
 
 import PharmacistDashboard from "./pages/pharmacist/PharmacistDashboard";
-import PatientLookup       from "./pages/pharmacist/PatientsLook";
+import PatientLookup       from "./pages/pharmacist/PatientLookup";
 
 import AdminDashboard  from "./pages/admin/AdminDashboard";
-import StaffManagement from "./pages/admin/StaffManangement";
+import StaffManagement from "./pages/admin/StaffManagement";
 import AddStaff        from "./pages/admin/AddStaff";
 
 function RoleRedirect() {
