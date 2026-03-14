@@ -3,8 +3,8 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext-v2";
 
-import LoginPage          from "./Pages/Auth/LoginPage";
-import ChangePasswordPage from "./Pages/Auth/ChangePasswordPage";
+import LoginPage          from "./pages/auth/LoginPage";
+import ChangePasswordPage from "./pages/Auth/ChangePasswordPage";
 
 import DoctorDashboard  from "./pages/doctors/DoctorDashboard";
 import PatientList      from "./pages/doctors/PatientList";
