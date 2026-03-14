@@ -1,22 +1,22 @@
 // src/App.jsx
 
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { AuthProvider, useAuth } from "./context/AuthContext-v2";
+import { AuthProvider, useAuth } from "./context/AuthContext";
 
-import LoginPage          from "./pages/auth/LoginPage";
-import ChangePasswordPage from "./pages/Auth/ChangePasswordPage";
+import LoginPage          from "./pages/auth/Login";
+import ChangePasswordPage from "./pages/auth/ChangePasswordPage";
 
-import DoctorDashboard  from "./pages/doctors/DoctorDashboard";
-import PatientList      from "./pages/doctors/PatientList";
+import DoctorDashboard  from "./pages/doctors/DoctorDashbord";
+import PatientList      from "./pages/doctors/PatientsList";
 import PatientDetail    from "./pages/doctors/PatientDetail";
 import RegisterPatient  from "./pages/doctors/RegisterPatient";
 
 import PharmacistDashboard from "./pages/pharmacist/PharmacistDashboard";
-import PatientLookup       from "./pages/pharmacist/PatientLookup";
+import PatientLookup       from "./pages/pharmacist/PatientsLook";
 
 import AdminDashboard  from "./pages/admin/AdminDashboard";
-import StaffManagement from "./pages/admin/StaffManagement";
-import AddStaff        from "./pages/admin/Add Staff";
+import StaffManagement from "./pages/admin/StaffManangement";
+import AddStaff        from "./pages/admin/AddStaff";
 
 function RoleRedirect() {
   const { user } = useAuth();
@@ -61,9 +61,9 @@ function AppRoutes() {
       <Route path="/pharmacist/lookup" element={<ProtectedRoute roles={["pharmacist"]}><PatientLookup /></ProtectedRoute>} />
 
       {/* Admin */}
-      <Route path="/admin"            element={<ProtectedRoute roles={["admin"]}><AdminDashboard /></ProtectedRoute>} />
-      <Route path="/admin/staff"      element={<ProtectedRoute roles={["admin"]}><StaffManagement /></ProtectedRoute>} />
-      <Route path="/admin/staff/new"  element={<ProtectedRoute roles={["admin"]}><AddStaff /></ProtectedRoute>} />
+      <Route path="/admin"           element={<ProtectedRoute roles={["admin"]}><AdminDashboard /></ProtectedRoute>} />
+      <Route path="/admin/staff"     element={<ProtectedRoute roles={["admin"]}><StaffManagement /></ProtectedRoute>} />
+      <Route path="/admin/staff/new" element={<ProtectedRoute roles={["admin"]}><AddStaff /></ProtectedRoute>} />
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
