@@ -1,7 +1,7 @@
 // src/App.jsx
 
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { AuthProvider, useAuth } from "./context/AuthContext";
+import { AuthProvider, useAuth } from "./context/AuthContext-v2";
 
 import LoginPage          from "./pages/auth/Login";
 import ChangePasswordPage from "./pages/auth/ChangePasswordPage";
