@@ -1,7 +1,7 @@
 // src/Pages/pharmacist/PharmacistDashboard.jsx
 
 import { useState, useEffect } from "react";
-import AppLayout from "../../Components/layout/AppLayout";
+import AppLayout from "../../components/layout/AppLayout";
 
 const token = () => localStorage.getItem("mt_token");
 const hdr   = () => ({ "Content-Type": "application/json", Authorization: `Bearer ${token()}` });
