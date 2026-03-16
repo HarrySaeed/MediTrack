@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import AppLayout from "../../Components/layout/AppLayout";
+import AppLayout from "../../Components/Layout/AppLayout";
 
 const token = () => localStorage.getItem("mt_token");
 const hdr   = () => ({ "Content-Type": "application/json", Authorization: `Bearer ${token()}` });
@@ -59,20 +59,29 @@ export default function PatientDetail() {
 
   async function submitDiagnosis(e) {
     e.preventDefault(); setSaving(true);
-    await fetch(`/api/patients/${id}/diagnoses`, { method: "POST", headers: hdr(), body: JSON.stringify(form) });
-    setSaving(false); closeModal(); loadPatient();
+    try {
+      const res = await fetch(`/api/patients/${id}/diagnoses`, { method: "POST", headers: hdr(), body: JSON.stringify(form) });
+      if (res.ok) { closeModal(); await loadPatient(); }
+    } catch (err) { console.error(err); }
+    finally { setSaving(false); }
   }
 
   async function submitPrescription(e) {
     e.preventDefault(); setSaving(true);
-    await fetch(`/api/patients/${id}/prescriptions`, { method: "POST", headers: hdr(), body: JSON.stringify(form) });
-    setSaving(false); closeModal(); loadPatient();
+    try {
+      const res = await fetch(`/api/patients/${id}/prescriptions`, { method: "POST", headers: hdr(), body: JSON.stringify(form) });
+      if (res.ok) { closeModal(); await loadPatient(); }
+    } catch (err) { console.error(err); }
+    finally { setSaving(false); }
   }
 
   async function submitHistory(e) {
     e.preventDefault(); setSaving(true);
-    await fetch(`/api/patients/${id}/history`, { method: "POST", headers: hdr(), body: JSON.stringify(form) });
-    setSaving(false); closeModal(); loadPatient();
+    try {
+      const res = await fetch(`/api/patients/${id}/history`, { method: "POST", headers: hdr(), body: JSON.stringify(form) });
+      if (res.ok) { closeModal(); await loadPatient(); }
+    } catch (err) { console.error(err); }
+    finally { setSaving(false); }
   }
 
   function calcAge(dob) {
