@@ -31,7 +31,7 @@ export default async (req) => {
       ? await sql`
           SELECT p.*, s.full_name AS registered_by_name
           FROM patients p LEFT JOIN staff s ON s.id = p.registered_by
-          WHERE p.full_name ILIKE ${"%" + search + "%"} OR p.mrn ILIKE ${"%" + search + "%"}
+          WHERE p.full_name ILIKE ${"%" + search + "%"} OR p.mrn ILIKE ${"%" + search + "%"} OR p.cnic ILIKE ${"%" + search + "%"}
           ORDER BY p.created_at DESC`
       : await sql`
           SELECT p.*, s.full_name AS registered_by_name
@@ -42,15 +42,28 @@ export default async (req) => {
 
   // ── POST /api/patients ────────────────────────────────
   if (method === "POST" && pathname === "/api/patients") {
-    const { fullName, dateOfBirth, gender, bloodType, phone, address, emergencyContactName, emergencyContactPhone, allergies } = await req.json();
+    const { fullName, dateOfBirth, gender, bloodType, phone, address, emergencyContactName, emergencyContactPhone, allergies, cnic } = await req.json();
     if (!fullName || !dateOfBirth || !gender) {
       return Response.json({ error: "Full name, date of birth and gender are required" }, { status: 400 });
+    }
+    if (!cnic) {
+      return Response.json({ error: "CNIC is required" }, { status: 400 });
+    }
+    // Validate CNIC format: XXXXX-XXXXXXX-X
+    const cnicRegex = /^[0-9]{5}-[0-9]{7}-[0-9]{1}$/;
+    if (!cnicRegex.test(cnic)) {
+      return Response.json({ error: "Invalid CNIC format. Use: XXXXX-XXXXXXX-X" }, { status: 400 });
+    }
+    // Check CNIC uniqueness
+    const existing = await sql`SELECT id FROM patients WHERE cnic = ${cnic}`;
+    if (existing[0]) {
+      return Response.json({ error: "A patient with this CNIC already exists" }, { status: 409 });
     }
     const countRows = await sql`SELECT COUNT(*) AS count FROM patients`;
     const mrn       = "MRN-" + String(parseInt(countRows[0].count) + 1).padStart(5, "0");
     const rows = await sql`
-      INSERT INTO patients (mrn, full_name, date_of_birth, gender, blood_type, phone, address, emergency_contact_name, emergency_contact_phone, allergies, registered_by)
-      VALUES (${mrn}, ${fullName}, ${dateOfBirth}, ${gender}, ${bloodType || null}, ${phone || null}, ${address || null}, ${emergencyContactName || null}, ${emergencyContactPhone || null}, ${allergies || null}, ${user.id})
+      INSERT INTO patients (mrn, cnic, full_name, date_of_birth, gender, blood_type, phone, address, emergency_contact_name, emergency_contact_phone, allergies, registered_by)
+      VALUES (${mrn}, ${cnic}, ${fullName}, ${dateOfBirth}, ${gender}, ${bloodType || null}, ${phone || null}, ${address || null}, ${emergencyContactName || null}, ${emergencyContactPhone || null}, ${allergies || null}, ${user.id})
       RETURNING *`;
     return Response.json(rows[0], { status: 201 });
   }

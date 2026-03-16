@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import AppLayout from "../../Components/layout/AppLayout";
+import AppLayout from "../../Components/Layout/AppLayout";
 
 const token = () => localStorage.getItem("mt_token");
 
@@ -70,7 +70,7 @@ export default function PatientList() {
             <div className="search-bar">
               <span className="search-icon">🔍</span>
               <input
-                placeholder="Search by name or MRN..."
+                placeholder="Search by name, CNIC or MRN..."
                 value={search}
                 onChange={e => setSearch(e.target.value)}
               />
@@ -95,6 +95,7 @@ export default function PatientList() {
                 <thead>
                   <tr>
                     <th>Patient</th>
+                    <th>CNIC</th>
                     <th>MRN</th>
                     <th>Age</th>
                     <th>Gender</th>
@@ -120,6 +121,7 @@ export default function PatientList() {
                           </div>
                         </div>
                       </td>
+                      <td><span className="td-mono">{p.cnic || "—"}</span></td>
                       <td><span className="td-mono">{p.mrn}</span></td>
                       <td>{calcAge(p.date_of_birth)}</td>
                       <td style={{ textTransform: "capitalize" }}>{p.gender}</td>

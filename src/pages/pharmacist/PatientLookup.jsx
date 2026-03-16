@@ -1,7 +1,7 @@
 // src/Pages/pharmacist/PatientsLook.jsx
 
 import { useState } from "react";
-import AppLayout from "../../Components/layout/AppLayout";
+import AppLayout from "../../Components/Layout/AppLayout";
 
 const token = () => localStorage.getItem("mt_token");
 const hdr   = () => ({ "Content-Type": "application/json", Authorization: `Bearer ${token()}` });
@@ -57,7 +57,7 @@ export default function PatientLookup() {
         <div className="page-header">
           <div>
             <h1 className="page-title">Patient Lookup</h1>
-            <p className="page-subtitle">Search by patient ID to view prescriptions</p>
+            <p className="page-subtitle">Search by CNIC, MRN or Patient ID to view prescriptions</p>
           </div>
         </div>
 
@@ -67,7 +67,7 @@ export default function PatientLookup() {
             <div className="form-group flex-1" style={{ marginBottom: 0 }}>
               <input
                 className="form-input"
-                placeholder="Enter Patient ID"
+                placeholder="Enter CNIC (35404-5658770-1), MRN or Patient ID"
                 value={query}
                 onChange={e => setQuery(e.target.value)}
               />
@@ -90,7 +90,8 @@ export default function PatientLookup() {
                 <div className="flex-1">
                   <h2 style={{ fontSize: 20, fontWeight: 800, color: "#111827", marginBottom: 6 }}>{patient.full_name}</h2>
                   <div className="flex gap-3 items-center flex-wrap">
-                    <span className="td-mono">{patient.mrn}</span>
+                    <span className="td-mono">{patient.cnic || patient.mrn}</span>
+                    <span className="td-mono" style={{ fontSize: 11, color: "#9CA3AF" }}>{patient.mrn}</span>
                     <span className="badge badge-blue" style={{ textTransform: "capitalize" }}>{patient.gender}</span>
                     <span className="badge badge-gray">{calcAge(patient.date_of_birth)}</span>
                     {patient.allergies && <span className="badge badge-amber">⚠ {patient.allergies}</span>}
@@ -199,7 +200,7 @@ export default function PatientLookup() {
           <div className="empty-state" style={{ marginTop: 40 }}>
             <div className="empty-icon">🔍</div>
             <div className="empty-title">Search for a patient</div>
-            <div className="empty-desc">Enter a patient ID above to view their prescriptions</div>
+            <div className="empty-desc">Enter a patient ID or MRN above to view their prescriptions</div>
           </div>
         )}
 

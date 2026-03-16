@@ -2,16 +2,24 @@
 
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import AppLayout from "../../components/Layout/AppLayout";
+import AppLayout from "../../Components/Layout/AppLayout";
 
 const token = () => localStorage.getItem("mt_token");
 
 const INITIAL = {
   fullName: "", dateOfBirth: "", gender: "", bloodType: "",
-  phone: "", address: "",
+  cnic: "", phone: "", address: "",
   emergencyContactName: "", emergencyContactPhone: "",
   allergies: "",
 };
+
+function formatCNIC(value) {
+  // Auto-format as user types: XXXXX-XXXXXXX-X
+  const digits = value.replace(/[^0-9]/g, "");
+  if (digits.length <= 5)  return digits;
+  if (digits.length <= 12) return digits.slice(0,5) + "-" + digits.slice(5);
+  return digits.slice(0,5) + "-" + digits.slice(5,12) + "-" + digits.slice(12,13);
+}
 
 export default function RegisterPatient() {
   const navigate          = useNavigate();
@@ -72,6 +80,14 @@ export default function RegisterPatient() {
                   <input className="form-input" type="date"
                     value={form.dateOfBirth} onChange={set("dateOfBirth")} required />
                 </div>
+              </div>
+              <div className="form-group" style={{ marginBottom: 16 }}>
+                <label className="form-label">CNIC *</label>
+                <input className="form-input" placeholder="e.g. 35404-5658770-1"
+                  value={form.cnic}
+                  onChange={e => setForm(p => ({ ...p, cnic: formatCNIC(e.target.value) }))}
+                  maxLength={15} required />
+                <span className="form-hint">Pakistani National Identity Card number (XXXXX-XXXXXXX-X)</span>
               </div>
               <div className="form-grid-3">
                 <div className="form-group">

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import AppLayout from "../../components/Layout/AppLayout";
+import AppLayout from "../../Components/Layout/AppLayout";
 
 const token = () => localStorage.getItem("mt_token");
 const hdr   = () => ({ "Content-Type": "application/json", Authorization: `Bearer ${token()}` });
@@ -172,6 +172,10 @@ export default function PatientDetail() {
           </div>
 
           <div className="info-grid">
+            <div className="info-item">
+              <div className="info-label">CNIC</div>
+              <div className="info-value text-mono">{patient.cnic || "—"}</div>
+            </div>
             <div className="info-item">
               <div className="info-label">Age</div>
               <div className="info-value">{calcAge(patient.date_of_birth)}</div>
