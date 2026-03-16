@@ -55,47 +55,6 @@ export default async (req) => {
     return Response.json(rows[0], { status: 201 });
   }
 
-  // ── POST /api/patients/:id/diagnoses ──────────────────
-  const matchDiagnoses = pathname.match(/^\/api\/patients\/(\d+)\/diagnoses$/);
-  if (method === "POST" && matchDiagnoses) {
-    const patientId = parseInt(matchDiagnoses[1]);
-    const { condition, icdCode, status, notes } = await req.json();
-    if (!condition) return Response.json({ error: "Condition is required" }, { status: 400 });
-    const rows = await sql`
-      INSERT INTO diagnoses (patient_id, doctor_id, condition, icd_code, status, notes)
-      VALUES (${patientId}, ${user.id}, ${condition}, ${icdCode || null}, ${status || "active"}, ${notes || null})
-      RETURNING *`;
-    return Response.json(rows[0], { status: 201 });
-  }
-
-  // ── POST /api/patients/:id/prescriptions ──────────────
-  const matchPrescriptions = pathname.match(/^\/api\/patients\/(\d+)\/prescriptions$/);
-  if (method === "POST" && matchPrescriptions) {
-    const patientId = parseInt(matchPrescriptions[1]);
-    const { drugName, dosage, frequency, duration, instructions } = await req.json();
-    if (!drugName || !dosage || !frequency) {
-      return Response.json({ error: "Drug name, dosage and frequency are required" }, { status: 400 });
-    }
-    const rows = await sql`
-      INSERT INTO prescriptions (patient_id, doctor_id, drug_name, dosage, frequency, duration, instructions, status)
-      VALUES (${patientId}, ${user.id}, ${drugName}, ${dosage}, ${frequency}, ${duration || null}, ${instructions || null}, 'pending')
-      RETURNING *`;
-    return Response.json(rows[0], { status: 201 });
-  }
-
-  // ── POST /api/patients/:id/history ────────────────────
-  const matchHistory = pathname.match(/^\/api\/patients\/(\d+)\/history$/);
-  if (method === "POST" && matchHistory) {
-    const patientId = parseInt(matchHistory[1]);
-    const { condition, notes } = await req.json();
-    if (!condition) return Response.json({ error: "Condition is required" }, { status: 400 });
-    const rows = await sql`
-      INSERT INTO medical_history (patient_id, condition, notes, recorded_by)
-      VALUES (${patientId}, ${condition}, ${notes || null}, ${user.id})
-      RETURNING *`;
-    return Response.json(rows[0], { status: 201 });
-  }
-
   // ── GET /api/patients/:id ─────────────────────────────
   const matchId = pathname.match(/^\/api\/patients\/(\d+)$/);
   if (method === "GET" && matchId) {
@@ -108,7 +67,26 @@ export default async (req) => {
 
     const [history, visits, diagnoses, prescriptions] = await Promise.all([
       sql`SELECT mh.*, s.full_name AS recorded_by_name FROM medical_history mh LEFT JOIN staff s ON s.id = mh.recorded_by WHERE mh.patient_id = ${id} ORDER BY mh.recorded_at DESC`,
-      sql`SELECT v.*, s.full_name AS doctor_name FROM visits v LEFT JOIN staff s ON s.id = v.doctor_id WHERE v.patient_id = ${id} ORDER BY v.visited_at DESC`,
+      sql`
+        SELECT
+          v.*,
+          s.full_name AS doctor_name,
+          json_agg(DISTINCT jsonb_build_object(
+            'id', d.id, 'condition', d.condition, 'icd_code', d.icd_code,
+            'status', d.status, 'notes', d.notes, 'diagnosed_at', d.diagnosed_at
+          )) FILTER (WHERE d.id IS NOT NULL) AS diagnoses,
+          json_agg(DISTINCT jsonb_build_object(
+            'id', pr.id, 'drug_name', pr.drug_name, 'dosage', pr.dosage,
+            'frequency', pr.frequency, 'duration', pr.duration,
+            'status', pr.status, 'prescribed_at', pr.prescribed_at
+          )) FILTER (WHERE pr.id IS NOT NULL) AS prescriptions
+        FROM visits v
+        LEFT JOIN staff s ON s.id = v.doctor_id
+        LEFT JOIN diagnoses d ON d.visit_id = v.id
+        LEFT JOIN prescriptions pr ON pr.visit_id = v.id
+        WHERE v.patient_id = ${id}
+        GROUP BY v.id, s.full_name
+        ORDER BY v.visited_at DESC`,
       sql`SELECT d.*, s.full_name AS doctor_name FROM diagnoses d LEFT JOIN staff s ON s.id = d.doctor_id WHERE d.patient_id = ${id} ORDER BY d.diagnosed_at DESC`,
       sql`SELECT pr.*, s.full_name AS doctor_name FROM prescriptions pr LEFT JOIN staff s ON s.id = pr.doctor_id WHERE pr.patient_id = ${id} ORDER BY pr.prescribed_at DESC`,
     ]);
@@ -129,6 +107,70 @@ export default async (req) => {
       WHERE id = ${id} RETURNING *`;
     if (!rows[0]) return Response.json({ error: "Patient not found" }, { status: 404 });
     return Response.json(rows[0]);
+  }
+
+  // ── POST /api/patients/:id/visit — create/get today's visit ──
+  const matchVisit = pathname.match(/^\/api\/patients\/(\d+)\/visit$/);
+  if (method === "POST" && matchVisit) {
+    const patientId = parseInt(matchVisit[1]);
+
+    // Check if there's already a visit today by this doctor
+    const existing = await sql`
+      SELECT id FROM visits
+      WHERE patient_id = ${patientId}
+        AND doctor_id  = ${user.id}
+        AND DATE(visited_at) = CURRENT_DATE
+      LIMIT 1`;
+
+    if (existing[0]) return Response.json({ visitId: existing[0].id });
+
+    // Create new visit
+    const rows = await sql`
+      INSERT INTO visits (patient_id, doctor_id, chief_complaint, is_auto)
+      VALUES (${patientId}, ${user.id}, 'Routine visit', true)
+      RETURNING id`;
+    return Response.json({ visitId: rows[0].id }, { status: 201 });
+  }
+
+  // ── POST /api/patients/:id/diagnoses ──────────────────
+  const matchDiagnoses = pathname.match(/^\/api\/patients\/(\d+)\/diagnoses$/);
+  if (method === "POST" && matchDiagnoses) {
+    const patientId = parseInt(matchDiagnoses[1]);
+    const { condition, icdCode, status, notes, visitId } = await req.json();
+    if (!condition) return Response.json({ error: "Condition is required" }, { status: 400 });
+    const rows = await sql`
+      INSERT INTO diagnoses (patient_id, doctor_id, visit_id, condition, icd_code, status, notes)
+      VALUES (${patientId}, ${user.id}, ${visitId || null}, ${condition}, ${icdCode || null}, ${status || "active"}, ${notes || null})
+      RETURNING *`;
+    return Response.json(rows[0], { status: 201 });
+  }
+
+  // ── POST /api/patients/:id/prescriptions ──────────────
+  const matchPrescriptions = pathname.match(/^\/api\/patients\/(\d+)\/prescriptions$/);
+  if (method === "POST" && matchPrescriptions) {
+    const patientId = parseInt(matchPrescriptions[1]);
+    const { drugName, dosage, frequency, duration, instructions, visitId } = await req.json();
+    if (!drugName || !dosage || !frequency) {
+      return Response.json({ error: "Drug name, dosage and frequency are required" }, { status: 400 });
+    }
+    const rows = await sql`
+      INSERT INTO prescriptions (patient_id, doctor_id, visit_id, drug_name, dosage, frequency, duration, instructions, status)
+      VALUES (${patientId}, ${user.id}, ${visitId || null}, ${drugName}, ${dosage}, ${frequency}, ${duration || null}, ${instructions || null}, 'pending')
+      RETURNING *`;
+    return Response.json(rows[0], { status: 201 });
+  }
+
+  // ── POST /api/patients/:id/history ────────────────────
+  const matchHistory = pathname.match(/^\/api\/patients\/(\d+)\/history$/);
+  if (method === "POST" && matchHistory) {
+    const patientId = parseInt(matchHistory[1]);
+    const { condition, notes } = await req.json();
+    if (!condition) return Response.json({ error: "Condition is required" }, { status: 400 });
+    const rows = await sql`
+      INSERT INTO medical_history (patient_id, condition, notes, recorded_by)
+      VALUES (${patientId}, ${condition}, ${notes || null}, ${user.id})
+      RETURNING *`;
+    return Response.json(rows[0], { status: 201 });
   }
 
   return Response.json({ error: "Not found" }, { status: 404 });
