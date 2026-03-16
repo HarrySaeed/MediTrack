@@ -425,12 +425,13 @@ export default function PatientDetail() {
           </div>
           <div className="form-grid-2">
             <div className="form-group">
-              <label className="form-label">ICD Code</label>
-              <input className="form-input" placeholder="e.g. E11" onChange={setF("icdCode")} />
+              <label className="form-label">ICD Code *</label>
+              <input className="form-input" placeholder="e.g. E11" onChange={setF("icdCode")} required />
             </div>
             <div className="form-group">
-              <label className="form-label">Status</label>
-              <select className="form-select" onChange={setF("status")}>
+              <label className="form-label">Status *</label>
+              <select className="form-select" onChange={setF("status")} required>
+                <option value="">Select status</option>
                 <option value="active">Active</option>
                 <option value="chronic">Chronic</option>
                 <option value="resolved">Resolved</option>
@@ -438,8 +439,8 @@ export default function PatientDetail() {
             </div>
           </div>
           <div className="form-group">
-            <label className="form-label">Notes</label>
-            <textarea className="form-textarea" placeholder="Additional notes..." onChange={setF("notes")} />
+            <label className="form-label">Notes *</label>
+            <textarea className="form-textarea" placeholder="Additional notes..." onChange={setF("notes")} required />
           </div>
         </Modal>
       )}
@@ -463,13 +464,13 @@ export default function PatientDetail() {
               <input className="form-input" placeholder="e.g. Twice daily" onChange={setF("frequency")} required />
             </div>
             <div className="form-group">
-              <label className="form-label">Duration</label>
-              <input className="form-input" placeholder="e.g. 3 months" onChange={setF("duration")} />
+              <label className="form-label">Duration *</label>
+              <input className="form-input" placeholder="e.g. 3 months" onChange={setF("duration")} required />
             </div>
           </div>
           <div className="form-group">
-            <label className="form-label">Instructions</label>
-            <textarea className="form-textarea" placeholder="e.g. Take with meals" onChange={setF("instructions")} />
+            <label className="form-label">Instructions *</label>
+            <textarea className="form-textarea" placeholder="e.g. Take with meals" onChange={setF("instructions")} required />
           </div>
         </Modal>
       )}
@@ -482,8 +483,8 @@ export default function PatientDetail() {
             <input className="form-input" placeholder="e.g. Asthma" onChange={setF("condition")} required />
           </div>
           <div className="form-group">
-            <label className="form-label">Notes</label>
-            <textarea className="form-textarea" placeholder="Additional details..." onChange={setF("notes")} />
+            <label className="form-label">Notes *</label>
+            <textarea className="form-textarea" placeholder="Additional details..." onChange={setF("notes")} required />
           </div>
         </Modal>
       )}

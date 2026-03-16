@@ -1,8 +1,8 @@
-// src/Pages/admin/AddStaff.jsx
+// src/pages/admin/AddStaff.jsx
 
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import AppLayout from "../../Components/layout/AppLayout";
+import AppLayout from "../../components/Layout/AppLayout";
 
 const token = () => localStorage.getItem("mt_token");
 const hdr   = () => ({ "Content-Type": "application/json", Authorization: `Bearer ${token()}` });
@@ -22,9 +22,7 @@ export default function AddStaff() {
     e.preventDefault();
     setError(""); setLoading(true);
     try {
-      const res  = await fetch("/api/admin/staff", {
-        method: "POST", headers: hdr(), body: JSON.stringify(form),
-      });
+      const res  = await fetch("/api/admin/staff", { method: "POST", headers: hdr(), body: JSON.stringify(form) });
       const data = await res.json();
       if (!res.ok) { setError(data.error || "Failed to create staff member"); return; }
       setCreated(data);
@@ -45,12 +43,9 @@ export default function AddStaff() {
             <p className="page-subtitle">Share the credentials below with the new staff member</p>
           </div>
         </div>
-
         <div className="card card-pad-lg" style={{ maxWidth: 560 }}>
-
-          {/* Staff summary */}
           <div className="flex items-center gap-4 mb-6">
-            <div className="avatar avatar-lg" style={{ background: "#EEF2FF", color: "#4F46E5" }}>
+            <div className="avatar avatar-lg">
               {created.full_name.split(" ").map(w => w[0]).slice(0,2).join("").toUpperCase()}
             </div>
             <div>
@@ -63,8 +58,6 @@ export default function AddStaff() {
               </div>
             </div>
           </div>
-
-          {/* Credentials box */}
           <div style={{ background: "#F9FAFB", borderRadius: 10, padding: "20px 24px", border: "1px solid #E5E7EB", marginBottom: 20 }}>
             <p className="text-xs text-upper text-faint mb-4">Login Credentials</p>
             <div className="flex justify-between items-center mb-4 pb-4" style={{ borderBottom: "1px solid #E5E7EB" }}>
@@ -76,20 +69,13 @@ export default function AddStaff() {
               <span className="text-mono text-xl font-bold text-primary">{created.tempPassword}</span>
             </div>
           </div>
-
           <div className="alert alert-warning mb-6">
             ⚠ Copy this password now — it will <strong>not</strong> be shown again. The staff member must change it on first login.
           </div>
-
           <div className="flex gap-3">
-            <button className="btn btn-primary" onClick={() => navigate("/admin/staff")}>
-              View All Staff
-            </button>
-            <button className="btn btn-secondary" onClick={() => { setCreated(null); setForm(INITIAL); }}>
-              Add Another
-            </button>
+            <button className="btn btn-primary" onClick={() => navigate("/admin/staff")}>View All Staff</button>
+            <button className="btn btn-secondary" onClick={() => { setCreated(null); setForm(INITIAL); }}>Add Another</button>
           </div>
-
         </div>
       </div>
     </AppLayout>
@@ -99,19 +85,16 @@ export default function AddStaff() {
   return (
     <AppLayout>
       <div className="page">
-
         <div className="page-header">
           <div>
             <h1 className="page-title">Add Staff Member</h1>
-            <p className="page-subtitle">Create a new account for a doctor, pharmacist or admin</p>
+            <p className="page-subtitle">All fields are required</p>
           </div>
           <button className="btn btn-ghost" onClick={() => navigate(-1)}>← Back</button>
         </div>
 
         <form onSubmit={handleSubmit}>
           <div className="card card-pad-lg" style={{ maxWidth: 680 }}>
-
-            {/* Personal */}
             <div className="form-section">
               <div className="form-section-title">Staff Details</div>
               <div className="form-grid-2" style={{ marginBottom: 16 }}>
@@ -137,19 +120,18 @@ export default function AddStaff() {
                   </select>
                 </div>
                 <div className="form-group">
-                  <label className="form-label">Department</label>
+                  <label className="form-label">Department *</label>
                   <input className="form-input" placeholder="e.g. Cardiology"
-                    value={form.department} onChange={setF("department")} />
+                    value={form.department} onChange={setF("department")} required />
                 </div>
                 <div className="form-group">
-                  <label className="form-label">Phone</label>
+                  <label className="form-label">Phone *</label>
                   <input className="form-input" placeholder="+1-555-0000"
-                    value={form.phone} onChange={setF("phone")} />
+                    value={form.phone} onChange={setF("phone")} required />
                 </div>
               </div>
             </div>
 
-            {/* Info box */}
             <div className="alert alert-info mb-6">
               ℹ A temporary password will be auto-generated. Share it with the staff member — they'll be prompted to change it on first login.
             </div>
@@ -163,10 +145,8 @@ export default function AddStaff() {
                 {loading ? "Creating..." : "Create Staff Member"}
               </button>
             </div>
-
           </div>
         </form>
-
       </div>
     </AppLayout>
   );
