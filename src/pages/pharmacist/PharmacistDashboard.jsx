@@ -1,7 +1,7 @@
 // src/Pages/pharmacist/PharmacistDashboard.jsx
 
 import { useState, useEffect } from "react";
-import AppLayout from "../../Components/layout/AppLayout";
+import AppLayout from "../../Components/Layout/AppLayout";
 
 const token = () => localStorage.getItem("mt_token");
 const hdr   = () => ({ "Content-Type": "application/json", Authorization: `Bearer ${token()}` });
@@ -11,17 +11,26 @@ export default function PharmacistDashboard() {
   const [loading, setLoading]   = useState(true);
   const [acting, setActing]     = useState(null); // prescription id being acted on
 
-  useEffect(() => { loadPending(); }, []);
+  const [stats, setStats] = useState({ pending: 0, filledToday: 0, cancelled: 0, allergyAlerts: 0 });
 
-  async function loadPending() {
+  useEffect(() => { loadAll(); }, []);
+
+  async function loadAll() {
     setLoading(true);
     try {
-      const res  = await fetch("/api/pharmacy/pending", { headers: hdr() });
-      const data = await res.json();
-      setPending(Array.isArray(data) ? data : []);
+      const [pendingRes, statsRes] = await Promise.all([
+        fetch("/api/pharmacy/pending", { headers: hdr() }),
+        fetch("/api/pharmacy/stats",   { headers: hdr() }),
+      ]);
+      const pendingData = await pendingRes.json();
+      const statsData   = await statsRes.json();
+      setPending(Array.isArray(pendingData) ? pendingData : []);
+      setStats(statsData);
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
   }
+
+  async function loadPending() { loadAll(); }
 
   async function handleAction(id, action) {
     setActing(id);
@@ -54,7 +63,7 @@ export default function PharmacistDashboard() {
           <div className="stat-card">
             <div className="stat-icon stat-icon-amber">💊</div>
             <div>
-              <div className="stat-value">{loading ? "—" : pending.length}</div>
+              <div className="stat-value">{loading ? "—" : stats.pending}</div>
               <div className="stat-label">Pending Prescriptions</div>
             </div>
           </div>
@@ -68,14 +77,14 @@ export default function PharmacistDashboard() {
           <div className="stat-card">
             <div className="stat-icon stat-icon-green">✅</div>
             <div>
-              <div className="stat-value">—</div>
+              <div className="stat-value">{loading ? "—" : stats.filledToday}</div>
               <div className="stat-label">Filled Today</div>
             </div>
           </div>
           <div className="stat-card">
             <div className="stat-icon stat-icon-red">⚠️</div>
             <div>
-              <div className="stat-value">{loading ? "—" : pending.filter(p => p.patient_allergies).length}</div>
+              <div className="stat-value">{loading ? "—" : stats.allergyAlerts}</div>
               <div className="stat-label">Allergy Alerts</div>
             </div>
           </div>

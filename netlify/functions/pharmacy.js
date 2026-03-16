@@ -21,6 +21,22 @@ export default async (req) => {
   const pathname = url.pathname;
   const method   = req.method;
 
+  // GET /api/pharmacy/stats
+  if (method === "GET" && pathname === "/api/pharmacy/stats") {
+    const [pending, filledToday, cancelled, allergyAlerts] = await Promise.all([
+      sql`SELECT COUNT(*) AS count FROM prescriptions WHERE status = 'pending'`,
+      sql`SELECT COUNT(*) AS count FROM prescriptions WHERE status = 'filled' AND DATE(filled_at) = CURRENT_DATE`,
+      sql`SELECT COUNT(*) AS count FROM prescriptions WHERE status = 'cancelled' AND DATE(filled_at) = CURRENT_DATE`,
+      sql`SELECT COUNT(DISTINCT p.id) AS count FROM prescriptions pr JOIN patients p ON p.id = pr.patient_id WHERE pr.status = 'pending' AND p.allergies IS NOT NULL AND p.allergies != '' AND LOWER(p.allergies) != 'none'`,
+    ]);
+    return Response.json({
+      pending:      parseInt(pending[0].count),
+      filledToday:  parseInt(filledToday[0].count),
+      cancelled:    parseInt(cancelled[0].count),
+      allergyAlerts: parseInt(allergyAlerts[0].count),
+    });
+  }
+
   // GET /api/pharmacy/pending
   if (method === "GET" && pathname === "/api/pharmacy/pending") {
     const rows = await sql`
@@ -90,6 +106,7 @@ export default async (req) => {
 
 export const config = {
   path: [
+    "/api/pharmacy/stats",
     "/api/pharmacy/pending",
     "/api/pharmacy/patients/*",
     "/api/pharmacy/prescriptions/*",
